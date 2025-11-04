@@ -1,0 +1,98 @@
+﻿@page "/register"
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using Lendory
+@using Microsoft.AspNetCore.Authorization
+
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Nav
+
+<h3>Register</h3>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
+}
+
+<EditForm FormName="RegisterForm" Model="@registerModel" OnValidSubmit="HandleRegister">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="email">Email</label>
+        <InputText id="email"
+                   name="Email"               
+                   @bind-Value="registerModel.Email"
+                   class="form-control" />
+        <ValidationMessage For="() => registerModel.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label for="pw">Password</label>
+        <InputText id="pw"
+                   name="Password"            
+                   @bind-Value="registerModel.Password"
+                   type="password"
+                   class="form-control" />
+        <ValidationMessage For="() => registerModel.Password" />
+    </div>
+
+    <div class="mb-3">
+        <label for="cpw">Confirm Password</label>
+        <InputText id="cpw"
+                   name="ConfirmPassword"     
+                   @bind-Value="registerModel.ConfirmPassword"
+                   type="password"
+                   class="form-control" />
+        <ValidationMessage For="() => registerModel.ConfirmPassword" />
+    </div>
+
+    <button class="btn btn-primary" type="submit">Register</button>
+    <a class="btn btn-link" href="/login">Already have an account? Login</a>
+</EditForm>
+
+
+
+@code {
+    private bool isError = false;
+    private string message = string.Empty;
+
+    private RegisterModel registerModel = new();
+
+    public class RegisterModel
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required, DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required, DataType(DataType.Password)]
+        [Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    private async Task HandleRegister()
+    {
+        message = string.Empty;
+        isError = false;
+
+        var user = new ApplicationUser { UserName = registerModel.Email, Email = registerModel.Email };
+        var result = await UserManager.CreateAsync(user, registerModel.Password);
+
+        if (result.Succeeded)
+        {
+            await SignInManager.SignInAsync(user, isPersistent: false);
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            isError = true;
+            message = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+    }
+}

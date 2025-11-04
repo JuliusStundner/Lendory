@@ -1,0 +1,76 @@
+﻿@page "/login"
+@attribute [AllowAnonymous]
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using Lendory
+@using Microsoft.AspNetCore.Authorization
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Nav
+
+<h3>Login</h3>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
+}
+
+<EditForm FormName="LoginForm" Model="@loginModel" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Email</label>
+        <InputText @bind-Value="loginModel.Email" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Password</label>
+        <InputText @bind-Value="loginModel.Password" type="password" class="form-control" />
+    </div>
+
+    <div class="form-check mb-3">
+        <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" />
+        <label class="form-check-label">Remember me</label>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Login</button>
+    <a class="btn btn-link" href="/register">Create new account</a>
+</EditForm>
+
+@code {
+    private bool isError = false;
+    private string message = string.Empty;
+
+    private LoginModel loginModel = new();
+
+    public class LoginModel
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required, DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+
+    private async Task HandleLogin()
+    {
+        message = string.Empty;
+        isError = false;
+
+        var result = await SignInManager.PasswordSignInAsync(
+            loginModel.Email, loginModel.Password, loginModel.RememberMe, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            isError = true;
+            message = result.IsLockedOut ? "Account locked." : "Invalid email or password.";
+        }
+    }
+}

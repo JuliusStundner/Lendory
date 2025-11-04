@@ -1,0 +1,38 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: dockerfile   # Pfad zu deinem kleingeschriebenen dockerfile
+    image: lendory
+    container_name: lendory-web
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      # Connection String für EF Core (Pomelo + MySQL)
+      ConnectionStrings__Default: "Server=db;Port=3306;Database=lendory;User Id=lendory;Password=secret;AllowPublicKeyRetrieval=true;SslMode=None;"
+      # optional: ASPNETCORE_ENVIRONMENT: "Docker"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: lendory-db
+    environment:
+      MYSQL_DATABASE: lendory
+      MYSQL_USER: lendory
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    ports:
+      - "3306:3306"        # optional: nur wenn du lokal mit einem Client zugreifen willst
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-hlocalhost", "-uroot", "-prootsecret"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mysql-data:
